@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>RotBlock</title>
+    <meta name="description" content="YouTube, Instagram and LinkedIn without Shorts, Reels or the endless feed." />
+
+    <!-- Home-screen web app: full screen, own icon and name on iPhone.
+         Safari add-ons do not run in this mode, so app links are handed to
+         Safari itself (see src/lib/launch.ts) where the RotBlock blocker runs. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="RotBlock" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#FAFAF8" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <style id="expo-reset">
+      #root, body, html { height: 100%; }
+      body { overflow: hidden; }
+      #root { display: flex; }
+      /* Feel like an app: no bounce, no text selection, no grey tap flash */
+      html, body { background: #FAFAF8; overscroll-behavior: none; margin: 0; }
+      body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+      input, textarea { -webkit-user-select: text; user-select: text; }
+    </style>
+  </head>
+  <body>
+    <noscript>RotBlock needs JavaScript turned on.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
