@@ -104,6 +104,7 @@ export default function Setup() {
             <Text style={s.doneText}>I&apos;m done</Text>
           </Press>
           <Text style={s.note}>Check it worked: open YouTube from RotBlock. If the home feed is replaced by “What did you come here for?”, you’re set.</Text>
+          <Text style={s.note}>Keep getting signed out? Make sure Safari isn’t on a Private tab (dark address bar), and sign in once in Safari itself — not in a pop-up with a “Done” button. Safari remembers it after that.</Text>
 
           <Press onPress={() => setShowAlt((v) => !v)} label="No Install button?" depth={0.98} style={s.altToggle}>
             <Text style={s.altToggleText}>No Install button?</Text>

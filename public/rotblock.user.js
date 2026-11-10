@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RotBlock
 // @description  Hides Shorts, Reels and endless feeds on YouTube, Instagram and LinkedIn.
-// @version      1.1.0
+// @version      1.2.0
 // @match        *://m.youtube.com/*
 // @match        *://www.youtube.com/*
 // @match        *://youtube.com/*
@@ -20,7 +20,7 @@
 // ==/UserScript==
 
 (function () {
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   var STATS_KEY = 'rotblock:stats';
   var hasGM = typeof GM !== 'undefined' && GM && typeof GM.getValue === 'function';
   function today() { return new Date().toISOString().slice(0, 10); }
@@ -112,22 +112,31 @@
     setTimeout(function () { tag.style.opacity = '0'; setTimeout(function () { tag.remove(); }, 400); }, 2200);
   });
 
-  // ── Sign-in prompt when you're signed out (YouTube, Instagram).
-  // LinkedIn already sends signed-out visitors to its own login page.
-  function signedOut() {
-    var c = document.cookie;
-    if (id === 'youtube') return !/(^|; )(SAPISID|__Secure-3PAPISID)=/.test(c);
-    if (id === 'instagram') return !/(^|; )ds_user_id=/.test(c) && location.pathname.indexOf('/accounts/') !== 0 && location.pathname.indexOf('/challenge') !== 0;
+  // ── Sign-in prompt, YouTube only. Instagram and LinkedIn already show their
+  // own login screen when you're signed out.
+  //
+  // Signed-in state comes from YouTube's own page data ("LOGGED_IN": true/false
+  // in an inline script), not cookies: YouTube's sign-in cookies aren't always
+  // visible to scripts, which made the old check say "signed out" when you
+  // weren't. If the flag can't be found, stay quiet rather than guess.
+  var SKIP_KEY = 'rotblock:login-skip-until';
+  function youtubeSignedOut() {
+    var scripts = document.querySelectorAll('script:not([src])');
+    for (var i = 0; i < scripts.length; i++) {
+      var hit = (scripts[i].textContent || '').match(/"LOGGED_IN"\s*:\s*(true|false)/);
+      if (hit) return hit[1] === 'false';
+    }
     return false;
   }
+  function skipped() {
+    try { return Number(localStorage.getItem(SKIP_KEY) || 0) > Date.now(); } catch (e) { return false; }
+  }
   function loginUrl() {
-    if (id === 'youtube') return 'https://accounts.google.com/ServiceLogin?service=youtube&continue=' + encodeURIComponent('https://m.youtube.com/');
-    return 'https://www.instagram.com/accounts/login/?next=' + encodeURIComponent(location.pathname + location.search);
+    return 'https://accounts.google.com/ServiceLogin?service=youtube&continue=' + encodeURIComponent('https://m.youtube.com/');
   }
   function showLogin() {
-    try { if (sessionStorage.getItem('rotblock:login-skip')) return; } catch (e) {}
-    if (!signedOut() || document.getElementById('rb-login')) return;
-    var name = id === 'youtube' ? 'YouTube' : 'Instagram';
+    if (id !== 'youtube' || skipped() || !youtubeSignedOut() || document.getElementById('rb-login')) return;
+    var name = 'YouTube';
     var wrap = el('div', FONT + 'position:fixed;inset:0;z-index:2147483647;background:rgba(13,13,16,.4);display:flex;align-items:flex-end;justify-content:center');
     wrap.id = 'rb-login';
     var sheet = el('div', 'width:100%;max-width:520px;background:#fff;border-radius:24px 24px 0 0;padding:24px 22px calc(env(safe-area-inset-bottom,0px) + 22px);box-sizing:border-box');
@@ -138,14 +147,15 @@
     go.href = loginUrl();
     var skip = el('button', 'display:block;width:100%;margin-top:10px;background:none;border:0;color:#5E5E66;font-size:15px;font-weight:500;padding:12px', 'Not now');
     skip.addEventListener('click', function () {
-      try { sessionStorage.setItem('rotblock:login-skip', '1'); } catch (e) {}
+      // Don't ask again for a week.
+      try { localStorage.setItem(SKIP_KEY, String(Date.now() + 7 * 24 * 3600 * 1000)); } catch (e) {}
       wrap.remove();
     });
     sheet.appendChild(go); sheet.appendChild(skip); wrap.appendChild(sheet);
     document.body.appendChild(wrap);
   }
-  // Give the page a moment so cookies set during load are visible.
-  whenBody(function () { setTimeout(showLogin, 1200); });
+  // Wait for the page's own data to load before checking.
+  whenBody(function () { setTimeout(showLogin, 1500); });
 
 
 (function () {
