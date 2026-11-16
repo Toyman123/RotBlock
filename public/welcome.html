@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RotBlock: keep the apps, lose the rot</title>
+<meta name="description" content="YouTube without Shorts. Instagram without Reels. LinkedIn without the endless feed. Free for iPhone." />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #FAFAF8; --card: #FFFFFF; --ink: #0D0D10; --sub: #5E5E66; --faint: #A3A3AB;
+    --line: #ECECEA; --fill: #F1F1EE; --track: #E2E2DE;
+    --ease: cubic-bezier(.2,.8,.2,1); --snap: cubic-bezier(.7,0,.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Inter Tight', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+
+  /* ── Nav */
+  nav { position: sticky; top: 0; z-index: 20; background: rgba(250,250,248,.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color .3s; }
+  nav.scrolled { border-bottom-color: var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .word { font-weight: 800; font-size: 18px; letter-spacing: .14em; }
+  .links { display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500; color: var(--sub); }
+  .links a.text { position: relative; transition: color .2s; }
+  .links a.text::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 1.5px; background: var(--ink); transform: scaleX(0); transform-origin: right; transition: transform .35s var(--snap); }
+  .links a.text:hover { color: var(--ink); }
+  .links a.text:hover::after { transform: scaleX(1); transform-origin: left; }
+
+  /* ── Buttons: tactile + magnetic (JS nudges --mx/--my) */
+  .btn { --mx: 0px; --my: 0px; display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 24px; border-radius: 999px; font: 700 16px 'Inter Tight', sans-serif; cursor: pointer; border: 0;
+         transform: translate(var(--mx), var(--my)); transition: transform .3s var(--ease), box-shadow .3s, background .2s; position: relative; overflow: hidden; }
+  .btn:hover { box-shadow: 0 12px 28px rgba(13,13,16,.18); }
+  .btn:active { transform: translate(var(--mx), var(--my)) scale(.95); box-shadow: none; transition-duration: .08s; }
+  .btn .arrow { display: inline-block; transition: transform .3s var(--ease); }
+  .btn:hover .arrow { transform: translateX(5px); }
+  .btn-dark { background: var(--ink); color: #fff; }
+  .btn-dark::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%); transform: translateX(-120%); }
+  .btn-dark:hover::before { transform: translateX(120%); transition: transform .8s var(--ease); }
+  .btn-light { background: var(--fill); color: var(--ink); }
+  .btn-light:hover { background: var(--track); }
+  .btn-sm { height: 42px; padding: 0 18px; font-size: 14px; }
+
+  /* ── Hero */
+  .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; padding: 64px 0 80px; min-height: calc(100vh - 72px); }
+  .kicker { font-size: 14px; font-weight: 600; color: var(--sub); display: inline-flex; align-items: center; gap: 8px; }
+  .kicker i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); position: relative; }
+  .kicker i::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--ink); animation: ping 1.8s var(--ease) infinite; }
+  @keyframes ping { from { transform: scale(1); opacity: .5; } to { transform: scale(3.2); opacity: 0; } }
+  h1 { font-size: clamp(52px, 6.4vw, 92px); line-height: .98; letter-spacing: -.045em; font-weight: 800; margin: 22px 0 26px; }
+  h1 .line { display: block; overflow: hidden; padding-bottom: .04em; }
+  h1 .line > span { display: block; transform: translateY(105%); animation: rise 1s var(--ease) forwards; }
+  h1 .line:nth-child(2) > span { animation-delay: .12s; }
+  .rot { position: relative; display: inline-block; color: var(--ink); animation: dim .5s 1.25s forwards; }
+  .rot::after { content: ''; position: absolute; left: -3%; right: -3%; top: 54%; height: .09em; background: var(--ink); transform: scaleX(0); transform-origin: left; animation: strike .6s 1.05s var(--snap) forwards; }
+  @keyframes rise { to { transform: none; } }
+  @keyframes strike { to { transform: scaleX(1); } }
+  @keyframes dim { to { color: var(--faint); } }
+  .lede { font-size: 20px; line-height: 1.5; color: var(--sub); max-width: 520px; }
+  .ctas { display: flex; gap: 12px; margin-top: 34px; flex-wrap: wrap; }
+  .fade { opacity: 0; transform: translateY(14px); animation: fade .9s var(--ease) forwards; }
+  @keyframes fade { to { opacity: 1; transform: none; } }
+
+  /* ── Phone + floating rot */
+  .stage { position: relative; height: 680px; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+  .phone { width: 320px; height: 650px; border-radius: 52px; background: #0D0D10; padding: 12px; position: relative; z-index: 2;
+           box-shadow: 0 50px 90px rgba(13,13,16,.2), 0 0 0 1px rgba(13,13,16,.06);
+           transform: rotateX(var(--rx, 6deg)) rotateY(var(--ry, -10deg)); transition: transform .5s var(--ease); transform-style: preserve-3d;
+           animation: bob 6s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+  .screen { width: 100%; height: 100%; border-radius: 41px; background: var(--bg); overflow: hidden; padding: 46px 20px 0; position: relative; }
+  .screen .notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 96px; height: 28px; border-radius: 20px; background: #0D0D10; }
+  .glare { position: absolute; inset: 0; border-radius: 41px; pointer-events: none; background: radial-gradient(circle at var(--gx, 30%) var(--gy, 20%), rgba(255,255,255,.35), transparent 45%); mix-blend-mode: soft-light; }
+  .s-word { font-weight: 800; font-size: 12px; letter-spacing: .14em; }
+  .s-label { font-size: 11px; color: var(--sub); margin-top: 22px; }
+  .s-big { display: flex; align-items: flex-end; gap: 4px; }
+  .s-big b { font-size: 72px; font-weight: 800; letter-spacing: -.06em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .s-big span { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .s-sub { font-size: 10px; color: var(--sub); }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 18px; }
+  .tile { aspect-ratio: 9/14; border-radius: 9px; background: var(--fill); position: relative; overflow: hidden; }
+  .tile em { position: absolute; top: 6px; left: 6px; font: 600 8px 'Inter Tight'; color: var(--sub); background: #fff; padding: 1px 4px; border-radius: 4px; font-style: normal; }
+  .tile::before { content: ''; position: absolute; inset: 0; background: var(--ink); transform: scaleY(0); transform-origin: top; animation: shutter 4.4s var(--snap) infinite; }
+  .tile::after { content: '\00d7'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 18px; opacity: 0; animation: x 4.4s infinite; }
+  .tile:nth-child(2)::before, .tile:nth-child(2)::after { animation-delay: .3s; }
+  .tile:nth-child(3)::before, .tile:nth-child(3)::after { animation-delay: .6s; }
+  .tile:nth-child(4)::before, .tile:nth-child(4)::after { animation-delay: .9s; }
+  @keyframes shutter { 0%, 8% { transform: scaleY(0); } 20%, 70% { transform: scaleY(1); } 85%, 100% { transform: scaleY(0); } }
+  @keyframes x { 0%, 14% { opacity: 0; } 22%, 68% { opacity: 1; } 80%, 100% { opacity: 0; } }
+  .s-apps { font-size: 15px; font-weight: 700; margin: 18px 0 8px; letter-spacing: -.02em; }
+  .s-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 9px; margin-bottom: 6px; }
+  .s-ico { width: 30px; height: 30px; border-radius: 8px; background: var(--fill); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .s-name { font-size: 12px; font-weight: 700; }
+  .s-block { font-size: 9px; color: var(--sub); }
+  .s-block s { color: var(--ink); }
+
+  .chip { position: absolute; z-index: 3; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 9px 15px; font-size: 14px; font-weight: 600; white-space: nowrap;
+          box-shadow: 0 10px 24px rgba(13,13,16,.08); translate: var(--px, 0) var(--py, 0); transition: translate .6s var(--ease); }
+  .chip span { position: relative; }
+  .chip span::after { content: ''; position: absolute; left: -2px; right: -2px; top: 54%; height: 2px; background: var(--ink); transform: scaleX(0); transform-origin: left; }
+  .chip.drift { animation: drift var(--d, 7s) ease-in-out infinite; }
+  @keyframes drift { 0%,100% { transform: translate(0,0) rotate(var(--r, -4deg)); } 50% { transform: translate(var(--dx, 8px), var(--dy, -14px)) rotate(calc(var(--r, -4deg) * -1)); } }
+  .chip.zap span::after { animation: strike .45s var(--snap) forwards; }
+  .chip.zap { animation: zap 1.4s .45s var(--ease) forwards; }
+  @keyframes zap { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(18px) scale(.9) rotate(var(--r, -4deg)); } }
+
+  /* ── Marquee of crossed-out rot */
+  .marquee { border-block: 1px solid var(--line); overflow: hidden; padding: 22px 0; background: var(--card); }
+  .track { display: flex; gap: 48px; width: max-content; animation: slide 38s linear infinite; }
+  .marquee:hover .track { animation-play-state: paused; }
+  .track span { font-size: 28px; font-weight: 700; letter-spacing: -.03em; color: var(--faint); text-decoration: line-through; text-decoration-color: var(--ink); text-decoration-thickness: 2px; display: inline-flex; align-items: center; gap: 48px; }
+  .track span::after { content: '\00d7'; color: var(--ink); text-decoration: none; display: inline-block; font-size: 20px; }
+  @keyframes slide { to { transform: translateX(-50%); } }
+
+  /* ── Sections */
+  section { padding: 104px 0; }
+  .eyebrow { font-size: 14px; font-weight: 600; color: var(--sub); }
+  h2 { font-size: clamp(36px, 4vw, 56px); letter-spacing: -.04em; line-height: 1.02; font-weight: 800; margin-top: 12px; max-width: 780px; }
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+  h2.split .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .06em; }
+  h2.split .w > span { display: inline-block; transform: translateY(105%); transition: transform .8s var(--ease); }
+  h2.split.in .w > span { transform: none; }
+
+  /* ── App cards */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 52px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 28px; position: relative; overflow: hidden;
+          transition: transform .45s var(--ease), box-shadow .45s, opacity .9s var(--ease); }
+  .card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(400px circle at var(--cx, 50%) var(--cy, 0%), rgba(13,13,16,.05), transparent 60%); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .card:hover { transform: translateY(-8px); box-shadow: 0 28px 56px rgba(13,13,16,.09); }
+  .card:hover::before { opacity: 1; }
+  .card .ico { width: 52px; height: 52px; border-radius: 14px; background: var(--fill); display: grid; place-items: center; font-weight: 800; font-size: 16px; transition: transform .45s var(--ease), background .3s, color .3s; }
+  .card:hover .ico { transform: rotate(-8deg) scale(1.08); background: var(--ink); color: #fff; }
+  .card h3 { font-size: 26px; letter-spacing: -.03em; margin-top: 22px; }
+  .card ul { list-style: none; padding: 0; margin-top: 16px; display: grid; gap: 10px; }
+  .card li { font-size: 16px; display: flex; align-items: center; gap: 10px; }
+  .card li b { font-weight: 500; position: relative; transition: color .4s; }
+  .card li b::after { content: ''; position: absolute; left: -2px; right: -2px; top: 54%; height: 1.5px; background: var(--ink); transform: scaleX(0); transform-origin: left; transition: transform .45s var(--snap); }
+  .card.in li b { color: var(--faint); }
+  .card.in li b::after { transform: scaleX(1); }
+  .card li:nth-child(1) b, .card li:nth-child(1) b::after { transition-delay: .5s; }
+  .card li:nth-child(2) b, .card li:nth-child(2) b::after { transition-delay: .65s; }
+  .card li:nth-child(3) b, .card li:nth-child(3) b::after { transition-delay: .8s; }
+  .card .keep { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; color: var(--sub); display: flex; gap: 8px; }
+  .card .keep::before { content: '\2713'; color: var(--ink); font-weight: 700; }
+
+  /* ── Steps with a drawing line */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 52px; position: relative; }
+  .steps::before { content: ''; position: absolute; top: 45px; left: 45px; right: 45px; height: 2px; background: var(--ink); transform: scaleX(0); transform-origin: left; transition: transform 1.4s .3s var(--ease); z-index: 0; }
+  .steps.in::before { transform: scaleX(1); }
+  .step { padding: 28px; border-radius: 24px; background: var(--fill); position: relative; transition: transform .45s var(--ease), background .3s, opacity .9s var(--ease); }
+  .step:hover { transform: translateY(-6px); background: var(--track); }
+  .step .n { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 700; position: relative; z-index: 1; transform: scale(0); transition: transform .6s cubic-bezier(.3,1.6,.5,1); }
+  .steps.in .step:nth-child(1) .n { transform: scale(1); transition-delay: .2s; }
+  .steps.in .step:nth-child(2) .n { transform: scale(1); transition-delay: .7s; }
+  .steps.in .step:nth-child(3) .n { transform: scale(1); transition-delay: 1.2s; }
+  .step h4 { font-size: 20px; letter-spacing: -.02em; margin-top: 20px; }
+  .step p { font-size: 15px; line-height: 1.5; color: var(--sub); margin-top: 8px; }
+
+  /* ── Get it (QR) */
+  .get { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: center; background: var(--ink); color: #fff; border-radius: 32px; padding: 56px; position: relative; overflow: hidden; }
+  .get::before { content: ''; position: absolute; width: 520px; height: 520px; right: -140px; top: -200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.08), transparent 65%); animation: glow 8s ease-in-out infinite; }
+  @keyframes glow { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-60px, 40px); } }
+  .get h2 { color: #fff; margin-top: 0; }
+  .get p { color: rgba(255,255,255,.65); font-size: 18px; line-height: 1.5; margin-top: 16px; max-width: 520px; }
+  .qr { background: #fff; border-radius: 20px; padding: 16px; text-align: center; position: relative; transition: transform .45s var(--ease); z-index: 1; }
+  .qr:hover { transform: scale(1.05) rotate(-2deg); }
+  .qr #qr { position: relative; overflow: hidden; border-radius: 6px; }
+  .qr #qr svg { width: 180px; height: 180px; display: block; }
+  .qr #qr::after { content: ''; position: absolute; left: -10%; right: -10%; height: 26px; top: -30px; background: linear-gradient(to bottom, transparent, rgba(13,13,16,.18), transparent); animation: scan 2.6s ease-in-out infinite; }
+  @keyframes scan { 0% { top: -30px; } 60%, 100% { top: 190px; } }
+  .qr small { display: block; color: var(--sub); font-size: 13px; margin-top: 8px; }
+
+  footer { padding: 40px 0 56px; color: var(--faint); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  footer a { color: var(--sub); }
+  footer a:hover { color: var(--ink); }
+
+  @media (max-width: 960px) {
+    .hero, .get { grid-template-columns: 1fr; }
+    .hero { min-height: 0; }
+    .cards, .steps { grid-template-columns: 1fr; }
+    .steps::before { display: none; }
+    .links a.text { display: none; }
+    .chip { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    h1 .line > span, h2.split .w > span { transform: none; }
+    .fade, .reveal { opacity: 1; transform: none; }
+    .rot { color: var(--faint); } .rot::after { transform: scaleX(1); }
+    .steps .n { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap">
+    <a href="#" class="word">ROTBLOCK</a>
+    <div class="links">
+      <a href="#apps" class="text">What it blocks</a>
+      <a href="#how" class="text">How it works</a>
+      <a href="#get" class="btn btn-dark btn-sm magnetic">Get it on iPhone</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <span class="kicker fade"><i></i>Free for iPhone</span>
+      <h1>
+        <span class="line"><span>Keep the apps.</span></span>
+        <span class="line"><span>Lose the <span class="rot">rot</span>.</span></span>
+      </h1>
+      <p class="lede fade" style="animation-delay:.45s">YouTube without Shorts. Instagram without Reels. LinkedIn without the endless feed. You still get search, messages and the stuff you actually opened the app for.</p>
+      <div class="ctas fade" style="animation-delay:.6s">
+        <a href="#get" class="btn btn-dark magnetic">Get it on your iPhone <span class="arrow">&rarr;</span></a>
+        <a href="#how" class="btn btn-light magnetic">See how it works</a>
+      </div>
+    </div>
+
+    <div class="stage fade" id="stage" style="animation-delay:.3s">
+      <div class="phone" id="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="s-word">ROTBLOCK</div>
+          <div class="s-label">Time saved today</div>
+          <div class="s-big"><b id="mins">0</b><span>min</span></div>
+          <div class="s-sub">Example data</div>
+          <div class="tiles">
+            <div class="tile"><em>Short</em></div><div class="tile"><em>Reel</em></div>
+            <div class="tile"><em>For you</em></div><div class="tile"><em>Suggested</em></div>
+          </div>
+          <div class="s-apps">Apps</div>
+          <div class="s-row"><div class="s-ico">&#9654;</div><div><div class="s-name">YouTube</div><div class="s-block">Blocking <s>Shorts, Home feed</s></div></div></div>
+          <div class="s-row"><div class="s-ico">&#9678;</div><div><div class="s-name">Instagram</div><div class="s-block">Blocking <s>Reels, Explore</s></div></div></div>
+          <div class="s-row"><div class="s-ico">in</div><div><div class="s-name">LinkedIn</div><div class="s-block">Blocking <s>Feed, Ads</s></div></div></div>
+          <div class="glare" id="glare"></div>
+        </div>
+      </div>
+      <!-- floating rot chips are added by script -->
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="track" id="track"></div>
+  </div>
+
+  <section id="apps">
+    <div class="wrap">
+      <div class="reveal">
+        <div class="eyebrow">What it blocks</div>
+      </div>
+      <h2 class="split reveal-split">The useful parts stay. The parts built to keep you scrolling don't.</h2>
+      <div class="cards">
+        <div class="card reveal">
+          <div class="ico">&#9654;</div>
+          <h3>YouTube</h3>
+          <ul><li><b>Shorts</b></li><li><b>Home feed</b></li><li><b>Up next</b></li></ul>
+          <div class="keep">Keeps search, subscriptions and the video you came for.</div>
+        </div>
+        <div class="card reveal" style="transition-delay:.1s">
+          <div class="ico">&#9678;</div>
+          <h3>Instagram</h3>
+          <ul><li><b>Reels</b></li><li><b>Explore</b></li><li><b>Home feed</b></li></ul>
+          <div class="keep">Keeps your DMs. Or lock it to messages only.</div>
+        </div>
+        <div class="card reveal" style="transition-delay:.2s">
+          <div class="ico">in</div>
+          <h3>LinkedIn</h3>
+          <ul><li><b>Feed</b></li><li><b>Promoted posts</b></li><li><b>Red badges</b></li></ul>
+          <div class="keep">Keeps messages, jobs and your network.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="padding-top:0">
+    <div class="wrap">
+      <div class="reveal"><div class="eyebrow">How it works</div></div>
+      <h2 class="split reveal-split">Set it up once. Takes about five minutes.</h2>
+      <div class="steps reveal-steps">
+        <div class="step"><div class="n">1</div><h4>Add RotBlock to your home screen</h4><p>Open rotblock.vercel.app in Safari, tap Share, then Add to Home Screen.</p></div>
+        <div class="step"><div class="n">2</div><h4>Turn on the blocker</h4><p>Install the free Userscripts app and add RotBlock's blocker. The app walks you through it.</p></div>
+        <div class="step"><div class="n">3</div><h4>Open your apps from RotBlock</h4><p>Pick what disappears with a switch. Delete the original apps so nothing slips through.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="get" style="padding-top:0">
+    <div class="wrap">
+      <div class="get reveal">
+        <div style="position:relative;z-index:1">
+          <h2>Scan to get it on your phone.</h2>
+          <p>RotBlock lives on your iPhone. Point your camera at the code and it opens in Safari, ready to add to your home screen.</p>
+        </div>
+        <div class="qr"><div id="qr"></div><small>rotblock.vercel.app</small></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="word" style="color:var(--ink);font-size:14px">ROTBLOCK</span>
+    <span><a href="/?app=1">Open the web app</a> &middot; Made to be closed.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // QR code to the app
+  try {
+    var q = qrcode(0, 'M'); q.addData('https://rotblock.vercel.app'); q.make();
+    document.getElementById('qr').innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+  } catch (e) {}
+
+  // Count-up on the phone mock (example data)
+  var mins = document.getElementById('mins'), n = 0;
+  var t = setInterval(function () { n += 1; mins.textContent = n; if (n >= 47) clearInterval(t); }, reduce ? 0 : 30);
+
+  // Nav border on scroll
+  addEventListener('scroll', function () { document.getElementById('nav').classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+
+  // Marquee: crossed-out feed words, doubled for a seamless loop
+  var words = ['Shorts', 'Reels', 'For You', 'Explore', 'Suggested', 'Trending', 'Up next', 'Promoted', 'Autoplay', 'Watch next'];
+  var track = document.getElementById('track');
+  words.concat(words).forEach(function (w) { var s = document.createElement('span'); s.textContent = w; track.appendChild(s); });
+
+  // Split section headings into words for a staggered rise
+  document.querySelectorAll('h2.split').forEach(function (h) {
+    var parts = h.textContent.trim().split(/\s+/);
+    h.textContent = '';
+    parts.forEach(function (p, i) {
+      var w = document.createElement('span'); w.className = 'w';
+      var inner = document.createElement('span'); inner.textContent = p; inner.style.transitionDelay = (i * 0.04) + 's';
+      w.appendChild(inner); h.appendChild(w); h.appendChild(document.createTextNode(' '));
+    });
+  });
+
+  // Reveal on scroll
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.reveal, .reveal-split, .reveal-steps').forEach(function (r) { io.observe(r); });
+
+  if (reduce) return;
+
+  // Floating "rot" chips around the phone: drift, get crossed out, fade, respawn
+  var stage = document.getElementById('stage');
+  var spots = [
+    { l: '2%', t: '14%' }, { l: '70%', t: '6%' }, { l: '-4%', t: '58%' },
+    { l: '74%', t: '44%' }, { l: '8%', t: '86%' }, { l: '66%', t: '82%' }
+  ];
+  var labels = ['Shorts', 'Reels', 'For You', 'Explore', 'Suggested', 'Trending', 'Up next', 'Watch next'];
+  var li = 0;
+  function spawn(spot, delay) {
+    var c = document.createElement('div');
+    c.className = 'chip drift';
+    var inner = document.createElement('span'); inner.textContent = labels[li++ % labels.length]; c.appendChild(inner);
+    c.style.left = spot.l; c.style.top = spot.t;
+    c.style.setProperty('--r', (Math.random() * 10 - 5).toFixed(1) + 'deg');
+    c.style.setProperty('--d', (5 + Math.random() * 4).toFixed(1) + 's');
+    c.style.setProperty('--dx', (Math.random() * 20 - 10).toFixed(0) + 'px');
+    c.style.setProperty('--dy', (-8 - Math.random() * 14).toFixed(0) + 'px');
+    c.style.opacity = '0'; c.style.transition = 'opacity .6s, translate .6s cubic-bezier(.2,.8,.2,1)';
+    stage.appendChild(c);
+    setTimeout(function () { c.style.opacity = '1'; }, 50 + delay);
+    // later: strike it out and remove, then spawn a new one in the same spot
+    setTimeout(function () {
+      c.classList.remove('drift'); c.classList.add('zap');
+      setTimeout(function () { c.remove(); spawn(spot, 400); }, 1900);
+    }, delay + 2600 + Math.random() * 4200);
+  }
+  spots.forEach(function (s, i) { spawn(s, 1200 + i * 250); });
+
+  // 3D tilt + glare on the phone, parallax on chips, following the mouse
+  var phone = document.getElementById('phone'), glare = document.getElementById('glare');
+  stage.addEventListener('mousemove', function (e) {
+    var r = stage.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    phone.style.setProperty('--ry', (x * 22).toFixed(2) + 'deg');
+    phone.style.setProperty('--rx', (-y * 16).toFixed(2) + 'deg');
+    glare.style.setProperty('--gx', ((x + 0.5) * 100).toFixed(0) + '%');
+    glare.style.setProperty('--gy', ((y + 0.5) * 100).toFixed(0) + '%');
+    stage.querySelectorAll('.chip').forEach(function (c, i) {
+      var k = (i % 3 + 1) * 10;
+      c.style.setProperty('--px', (-x * k).toFixed(1) + 'px');
+      c.style.setProperty('--py', (-y * k).toFixed(1) + 'px');
+    });
+  });
+  stage.addEventListener('mouseleave', function () {
+    phone.style.removeProperty('--ry'); phone.style.removeProperty('--rx');
+    stage.querySelectorAll('.chip').forEach(function (c) { c.style.removeProperty('--px'); c.style.removeProperty('--py'); });
+  });
+
+  // Magnetic buttons: pull slightly toward the cursor
+  document.querySelectorAll('.magnetic').forEach(function (b) {
+    b.addEventListener('mousemove', function (e) {
+      var r = b.getBoundingClientRect();
+      b.style.setProperty('--mx', ((e.clientX - r.left - r.width / 2) * 0.18).toFixed(1) + 'px');
+      b.style.setProperty('--my', ((e.clientY - r.top - r.height / 2) * 0.28).toFixed(1) + 'px');
+    });
+    b.addEventListener('mouseleave', function () { b.style.setProperty('--mx', '0px'); b.style.setProperty('--my', '0px'); });
+  });
+
+  // Card spotlight follows the cursor
+  document.querySelectorAll('.card').forEach(function (c) {
+    c.addEventListener('mousemove', function (e) {
+      var r = c.getBoundingClientRect();
+      c.style.setProperty('--cx', (e.clientX - r.left) + 'px');
+      c.style.setProperty('--cy', (e.clientY - r.top) + 'px');
+    });
+  });
+})();
+</script>
+</body>
+</html>

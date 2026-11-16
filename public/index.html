@@ -18,6 +18,22 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
 
+    <!-- Laptops/desktops opening the site get the homepage (/welcome).
+         Phones, tablets and the home-screen app go straight to the app.
+         "?app=1" (the homepage's "Open the web app" link) skips this for the visit. -->
+    <script>
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          if (q.get('app') === '1') { sessionStorage.setItem('rotblock:app', '1'); return; }
+          if (sessionStorage.getItem('rotblock:app') === '1') return;
+          var standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+          var laptop = matchMedia('(hover: hover) and (pointer: fine)').matches && window.innerWidth >= 900;
+          if (location.pathname === '/' && laptop && !standalone) location.replace('/welcome');
+        } catch (e) {}
+      })();
+    </script>
+
     <style id="expo-reset">
       #root, body, html { height: 100%; }
       body { overflow: hidden; }
